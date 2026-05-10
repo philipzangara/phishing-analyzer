@@ -1,0 +1,4 @@
+*.eml
+__pycache__/
+*.pyc
+.env
