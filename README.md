@@ -8,7 +8,7 @@ Tested using Python 3.10.11
 
 Requirements:
 
-Uses standard Python library only
+pip install -r requirements.txt
 
 Sample Data:
 
