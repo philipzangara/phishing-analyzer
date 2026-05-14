@@ -7,6 +7,8 @@ from email import message_from_binary_file
 from email import policy
 from email.utils import parseaddr
 import tldextract
+import re
+from bs4 import BeautifulSoup
 
 DEBUG = False
 
@@ -85,7 +87,7 @@ def check_display_name_spoof(msg):
         extract = tldextract.extract(addr)
         name_split = name.split(' ')
 
-        # check if ... name is the same as the extracted domain name
+        # check if display name is the same as the extracted domain name
         for n in name_split:
             if n.lower() in extract.domain:
                 return { 
@@ -157,6 +159,29 @@ def received_chain_analysis(msg):
         "hops": len(received)
     }
 
+def extract_urls(body):
+    url_strip = []
+
+    # extract urls from the plain text and html text
+    # strip extra punctuation from the end of a url
+    for text in [body["plain"], body["html"]]:
+        for u in re.findall(r'https?://\S+', text):
+            url_strip.append(u.rstrip('.,;:)"'))
+
+    # extract urls from the html text
+    # the regex might miss a URL, so we use BeautifulSoup to
+    # find the rest
+    # strip extra punctuation from the end of a url
+    soup_body = BeautifulSoup(body["html"], 'html.parser')
+    for link in soup_body.find_all('a'):
+        #print("HTML text", link.get('href'))
+        href = link.get('href')
+        if href and href.startswith('http'):
+            url_strip.append(href.rstrip('.,;:)"'))
+
+    # converting to a set removes duplicates, then return back to a list
+    return list(set(url_strip))
+
 def print_field(label, value):
     print(f"{label:<30} {value}")
 
@@ -168,7 +193,7 @@ def verdict(value):
         return "CLEAN"
     return "N/A"
 
-def display_results(results, filename):
+def display_results(results, filename, urls):
     print("*** Simple Email Phishing Analyzer ***")
     print("=== File Info ===")
     print_field("Email: ", filename)
@@ -188,10 +213,8 @@ def display_results(results, filename):
     print_field("Display Name Spoof: ", verdict(results["display_name_spoof"]["spoofed"]))
     print_field("Reply-To Mismatch: " , verdict(results["reply_to"]["mismatch"]))
     print_field("Received Chain Mismatch: " , verdict(results["received_chain"].get("mismatch", "None")))
+    print_field("URL: ", urls)
     
-
-    
-
 def main(argv=None):
     args = parse_args(argv)
     filename = args.filename
@@ -205,9 +228,10 @@ def main(argv=None):
 
     parse_headers(msg)
     body = parse_body(msg)
-    parse_attachments(msg)
+    urls = extract_urls(body)
+    #parse_attachments(msg)
     header_results = analyze_headers(msg)
-    display_results(header_results,filename)
+    display_results(header_results,filename,urls)
 
 if __name__ == "__main__":
     main()
