@@ -158,7 +158,7 @@ def received_chain_analysis(msg):
     }
 
 def print_field(label, value):
-    print(f"{label:<20} {value}")
+    print(f"{label:<30} {value}")
 
 # Translate Spoofed and Mismatch from True/False/None to FLAGGED/CLEAN/N/A
 def verdict(value):
