@@ -5,6 +5,10 @@ import sys
 from pathlib import Path
 from email import message_from_binary_file
 from email import policy
+from email.utils import parseaddr
+import tldextract
+
+DEBUG = False
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Process a filename.")
@@ -12,9 +16,10 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 def parse_headers(msg):
-    print(msg['From'])
-    print(msg['Subject'])
-    print(msg.get_all('Received'))
+    if DEBUG:
+        print(msg['From'])
+        print(msg['Subject'])
+        print(msg.get_all('Received'))
 
 def parse_body(msg):
     for part in msg.walk():
@@ -26,7 +31,7 @@ def parse_body(msg):
             if charset == None:
                 charset = 'utf-8'
             text = plain.decode(charset, errors='replace')
-            print(text[:200])
+            if DEBUG: print(text[:200])
             continue
         elif part.get_content_type() == "text/html":
             html = part.get_payload(decode=True)
@@ -34,14 +39,85 @@ def parse_body(msg):
             if charset == None:
                 charset = 'utf-8'
             text = html.decode(charset, errors='replace')
-            print(text[:200])
+            if DEBUG: print(text[:200])
             
-def parse_attachements(msg):
+def parse_attachments(msg):
     for part in msg.walk():
         if part.get_content_disposition() == "attachment":
-            print(part.get_filename())
-            print("Attachement") 
+            if DEBUG: print(part.get_filename())
+            if DEBUG: print("Attachment") 
     
+def analyze_headers(msg):
+    auth_fields = ["spf", "dkim", "dmarc"]
+    results = {}
+    headers = msg.get_all('Authentication-Results', [])
+    parts = [p.strip() for p in headers[0].split(";") if p.strip()] if headers else []
+    for part in parts:
+        for af in auth_fields:
+            if part.startswith(af + "="):
+                result = part.split(" ", 1)[0]
+                final_result = result.split("=", 1)
+                results[final_result[0]] = final_result[1]
+
+    results["display_name_spoof"] = check_display_name_spoof(msg)
+    results["reply_to"] = check_reply_to(msg)
+    if DEBUG: print(results)
+    return results
+
+# Check is the display name is similar to the domain name, ex. "Microsoft Support" and info@microsoft.com
+# Matches on the first word found in domain - TLD not evaluated here.
+def check_display_name_spoof(msg):
+    name, addr = parseaddr(msg['From'])
+
+    # If display_name is not empty
+    if name:
+        extract = tldextract.extract(addr)
+        name_split = name.split(' ')
+
+        # check if ... name is the same as the extracted domain name
+        for n in name_split:
+            if n.lower() in extract.domain:
+                return { 
+                    "spoofed": False,
+                    "display_name": name,
+                    "from_domain": extract.domain+"."+extract.suffix 
+                    }
+        return { 
+            "spoofed": True, 
+            "display_name": name, 
+            "from_domain": extract.domain+"."+extract.suffix 
+            }
+
+    return { 
+        "spoofed": None, 
+        "reason": "No display name present"
+        }
+
+# Check if the Reply-To address matches the From address
+def check_reply_to(msg):
+    if msg['Reply-To']:
+        _, reply_addr = parseaddr(msg['Reply-To'])
+        _, from_addr = parseaddr(msg['From'])
+        reply_extract = tldextract.extract(reply_addr)
+        from_extract = tldextract.extract(from_addr)
+        if reply_extract.domain == from_extract.domain:
+            return {
+                "mismatch": False, 
+                "from_domain":from_extract.domain+"."+from_extract.suffix, 
+                "replyto_domain": reply_extract.domain+"."+reply_extract.suffix
+                }
+        else:
+            return {
+                "mismatch": True, 
+                "from_domain":from_extract.domain+"."+from_extract.suffix, 
+                "replyto_domain": reply_extract.domain+"."+reply_extract.suffix
+                }
+        
+    return {
+        "mismatch": None, 
+        "reason": "No Reply-To header"
+        }
+
 
 def main(argv=None):
     args = parse_args(argv)
@@ -56,7 +132,8 @@ def main(argv=None):
 
     parse_headers(msg)
     parse_body(msg)
-    parse_attachements(msg)
+    parse_attachments(msg)
+    analyze_headers(msg)
 
 if __name__ == "__main__":
     main()
