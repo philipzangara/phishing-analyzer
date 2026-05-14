@@ -9,7 +9,7 @@ from email.message import Message
 
 from headers import analyze_headers
 from body import parse_body, extract_urls
-from attachments import parse_attachments
+from attachments import parse_attachments, hash_attachments
 from vt import check_urls_vt
 from display import display_results
 from config import DEBUG
@@ -43,9 +43,10 @@ def main(argv=None) -> None:
     body = parse_body(msg)
     urls = extract_urls(body)
     vt_results = check_urls_vt(urls)
-    parse_attachments(msg)
+    attachments = parse_attachments(msg)
+    hashes = hash_attachments(attachments)
     header_results = analyze_headers(msg)
-    display_results(header_results,filename,urls,vt_results)
+    display_results(header_results,filename,hashes,vt_results)
 
 if __name__ == "__main__":
     main()

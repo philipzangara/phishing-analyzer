@@ -2,7 +2,7 @@ from typing import Optional, Any
 from pathlib import Path
 from config import DEBUG
 
-def display_results(results: dict, filename: str, urls: list, vt_results: list) -> None:
+def display_results(results: dict, filename: str, hashes: list, vt_results: list) -> None:
     print("*** Simple Email Phishing Analyzer ***")
     print("=== File Info ===")
     print_field("Email: ", filename)
@@ -22,16 +22,35 @@ def display_results(results: dict, filename: str, urls: list, vt_results: list) 
     print_field("Display Name Spoof: ", verdict(results["display_name_spoof"]["spoofed"]))
     print_field("Reply-To Mismatch: " , verdict(results["reply_to"]["mismatch"]))
     print_field("Received Chain Mismatch: " , verdict(results["received_chain"].get("mismatch", "None")))
+    
     print("\n=== URL Analysis ===")
-    for vt_result in vt_results:
-        if vt_result.get("error"):
-            print_field("URL: ", vt_result["url"])
-            print_field("Error: ", vt_result["error"])
-        else:
-            print_field("URL: ", vt_result["url"])
-            print_field("Verdict: ", url_verdict(vt_result["malicious"], vt_result["suspicious"]))
-            print_field("Malicious: ", vt_result["malicious"])
-            print_field("Suspicious: ", vt_result["suspicious"])
+    if vt_results:
+        for vt_result in vt_results:
+            if vt_result.get("error"):
+                print_field("URL: ", vt_result["url"])
+                print_field("Error: ", vt_result["error"])
+            else:
+                print_field("URL: ", vt_result["url"])
+                print_field("Verdict: ", url_verdict(vt_result["malicious"], vt_result["suspicious"]))
+                print_field("Malicious: ", vt_result["malicious"])
+                print_field("Suspicious: ", vt_result["suspicious"])
+    else:
+        print("No URLS found.")
+
+    print("\n=== Attachment Analysis ===")    
+    if hashes:
+        for h in hashes:
+            print_field("filename: ", h["filename"])
+            print_field("content-type: ", h["content_type"])
+            print_field("md5: ", h["md5"])
+            print_field("sha1: ", h["sha1"])
+            print_field("sha256: ", h["sha256"])
+    else:
+        print("No attachments found.")
+
+
+
+
 
 def print_field(label: str, value: Any) -> None:
     print(f"{label:<30} {value}")

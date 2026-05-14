@@ -1,6 +1,8 @@
 import unittest
 from display import verdict, url_verdict
 from body import extract_urls
+from attachments import hash_attachments
+import hashlib
 from config import DEBUG
 
 class TestVerdict(unittest.TestCase):
@@ -38,3 +40,22 @@ class TestExtractUrls(unittest.TestCase):
         print(result)
 
         self.assertEqual(len(result), 1)
+
+class TestHashAttachments(unittest.TestCase):
+    def setUp(self):
+        data = b"Random Test Data"
+        attachments = [{"filename": "test.pdf", "content_type": "application/pdf", "data": data}]
+        self.result = hash_attachments(attachments)
+        self.data = data
+    
+    def test_md5(self):        
+        self.assertEqual(hashlib.md5(self.data).hexdigest(), self.result[0]['md5'] )
+
+    def test_sha1(self):
+        self.assertEqual(hashlib.sha1(self.data).hexdigest(), self.result[0]['sha1'] )
+
+    def test_sha256(self):
+        self.assertEqual(hashlib.sha256(self.data).hexdigest(), self.result[0]['sha256'] )
+
+    def test_empty_list_returns_empty(self):
+        self.assertEqual(hash_attachments([]), [])
