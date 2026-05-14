@@ -2,6 +2,7 @@
 
 import argparse 
 import sys
+import os
 from pathlib import Path
 from email import message_from_binary_file
 from email import policy
@@ -9,8 +10,15 @@ from email.utils import parseaddr
 import tldextract
 import re
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import base64
+import requests
+import time
 
 DEBUG = False
+
+load_dotenv()
+api_key = os.getenv("VT_API_KEY")
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Process a filename.")
@@ -174,13 +182,47 @@ def extract_urls(body):
     # strip extra punctuation from the end of a url
     soup_body = BeautifulSoup(body["html"], 'html.parser')
     for link in soup_body.find_all('a'):
-        #print("HTML text", link.get('href'))
         href = link.get('href')
         if href and href.startswith('http'):
             url_strip.append(href.rstrip('.,;:)"'))
 
     # converting to a set removes duplicates, then return back to a list
     return list(set(url_strip))
+
+# check URLS in VirusTotal
+# rate limit to 15 seconds. Only 4 free API calls per minute.
+def check_urls_vt(urls):
+    vt_results = []
+
+    for url in urls:
+        url_id = base64.urlsafe_b64encode(url.encode()).decode().rstrip('=')
+
+        headers = {"x-apikey": api_key}
+        data = {"url": url} 
+        post_response = requests.post("https://www.virustotal.com/api/v3/urls", 
+                                  headers=headers, data=data)
+        
+        if post_response.status_code != 200:
+            vt_results.append({"url": url, "error": f"POST failed: {post_response.status_code}"})
+        else:
+            get_response = requests.get(f"https://www.virustotal.com/api/v3/urls/{url_id}", 
+                                headers=headers)
+            try:
+                response = get_response.json()
+                stats = response["data"]["attributes"]["last_analysis_stats"]
+                vt_results.append({
+                    "url": url,
+                    "malicious": stats["malicious"],
+                    "suspicious": stats["suspicious"],
+                    "harmless": stats["harmless"]
+                })
+            except Exception as e:
+                vt_results.append({
+                    "url": url,
+                    "error": str(e)
+                })
+        time.sleep(15)    
+    return vt_results
 
 def print_field(label, value):
     print(f"{label:<30} {value}")
@@ -193,11 +235,18 @@ def verdict(value):
         return "CLEAN"
     return "N/A"
 
-def display_results(results, filename, urls):
+def url_verdict(malicious, suspicious):
+    if malicious >= 1:
+        return "MALICIOUS"
+    elif suspicious >= 1:
+        return "SUSPICIOUS"
+    return "CLEAN"
+
+def display_results(results, filename, urls, vt_results):
     print("*** Simple Email Phishing Analyzer ***")
     print("=== File Info ===")
     print_field("Email: ", filename)
-    print_field("Size:", f"{Path(filename).stat().st_size} bytes")
+    print_field("Size: ", f"{Path(filename).stat().st_size} bytes")
     print("\n=== Header Analysis ===")
     print_field("Subject: ", results.get("subject", "None"))
     print_field("From: ", results["display_name_spoof"].get("display_name", "None"))
@@ -213,14 +262,23 @@ def display_results(results, filename, urls):
     print_field("Display Name Spoof: ", verdict(results["display_name_spoof"]["spoofed"]))
     print_field("Reply-To Mismatch: " , verdict(results["reply_to"]["mismatch"]))
     print_field("Received Chain Mismatch: " , verdict(results["received_chain"].get("mismatch", "None")))
-    print_field("URL: ", urls)
-    
+    print("\n=== URL Analysis ===")
+    for vt_result in vt_results:
+        if vt_result.get("error"):
+            print_field("URL: ", vt_result["url"])
+            print_field("Error: ", vt_result["error"])
+        else:
+            print_field("URL: ", vt_result["url"])
+            print_field("Verdict: ", url_verdict(vt_result["malicious"], vt_result["suspicious"]))
+            print_field("Malicious: ", vt_result["malicious"])
+            print_field("Suspicious: ", vt_result["suspicious"])
+            
 def main(argv=None):
     args = parse_args(argv)
     filename = args.filename
     file_ext = Path(args.filename)
     if file_ext.suffix.lower() not in [".eml"]:
-        print("Error: Email must have .eml extention", file=sys.stderr)
+        print("Error: Email must have .eml extension", file=sys.stderr)
         raise SystemExit(2)
 
     with open(filename, 'rb') as f:
@@ -229,9 +287,10 @@ def main(argv=None):
     parse_headers(msg)
     body = parse_body(msg)
     urls = extract_urls(body)
-    #parse_attachments(msg)
+    vt_results = check_urls_vt(urls)
+    parse_attachments(msg)
     header_results = analyze_headers(msg)
-    display_results(header_results,filename,urls)
+    display_results(header_results,filename,urls,vt_results)
 
 if __name__ == "__main__":
     main()

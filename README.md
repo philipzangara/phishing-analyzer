@@ -17,7 +17,7 @@ Test emails sourced from: https://github.com/rf-peixoto/phishing_pot/
 Planned Phases
 - [x] 1. Email Parsing
 - [X] 2. Header Analysis
-- [X] 3. URL Extraction (in progress
+- [X] 3. URL Extraction 
 - [ ] 4. Attachment Analysis
 - [ ] 5. Scoring and Report
 
