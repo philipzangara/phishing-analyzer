@@ -2,7 +2,7 @@ A simple email parsing tool for phishing analysis
 
 Usage:
 
-python phishing-analyzer.py <path-to-file.eml>
+python phishing_analyzer.py <path-to-file.eml>
 
 Tested using Python 3.10.11
 
