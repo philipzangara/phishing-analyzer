@@ -17,11 +17,15 @@ def parse_args(argv=None):
 
 def parse_headers(msg):
     if DEBUG:
+        print("Headers")
         print(msg['From'])
         print(msg['Subject'])
         print(msg.get_all('Received'))
 
+# Iterates through the body of the email
+# This will only return the body of the email the receiver first sees
 def parse_body(msg):
+    body = {"plain": "", "html": ""}
     for part in msg.walk():
         if part.get_content_type().startswith("multipart"): 
             continue
@@ -31,6 +35,8 @@ def parse_body(msg):
             if charset == None:
                 charset = 'utf-8'
             text = plain.decode(charset, errors='replace')
+            if body["plain"] == "":
+                body["plain"] = text
             if DEBUG: print(text[:200])
             continue
         elif part.get_content_type() == "text/html":
@@ -39,7 +45,10 @@ def parse_body(msg):
             if charset == None:
                 charset = 'utf-8'
             text = html.decode(charset, errors='replace')
+            if body["html"] == "":
+                body["html"] = text
             if DEBUG: print(text[:200])
+    return body
             
 def parse_attachments(msg):
     for part in msg.walk():
@@ -62,6 +71,7 @@ def analyze_headers(msg):
     results["display_name_spoof"] = check_display_name_spoof(msg)
     results["reply_to"] = check_reply_to(msg)
     results["subject"] = msg["Subject"]
+    results["received_chain"] = received_chain_analysis(msg)
     if DEBUG: print(results)
     return results
 
@@ -118,6 +128,35 @@ def check_reply_to(msg):
         "mismatch": None,
         "reason": "No Reply-To header"
         }
+
+# received gets a header similar to "from 2435sdf.co.uk (X.X.X.X) by DM6NAFSDTM11FT012.mail.protection.outlook.com ...."
+# The last item of the array is the first hop
+# Split the array, the "from" is the [0] item of the array, then the domain is the [1] item
+def received_chain_analysis(msg):
+    received = msg.get_all('Received')
+
+    if not received:
+        return {"mismatch": None, "reason": "No Received headers"} 
+    
+    received_split = received[-1].split()
+    received_extract = tldextract.extract(received_split[1])
+
+    _, from_addr = parseaddr(msg['From'])
+    from_extract = tldextract.extract(from_addr)
+
+    mismatch = None
+    if (from_extract.domain+"."+from_extract.suffix == received_extract.domain+"."+received_extract.suffix):   
+        mismatch = False     
+    else:
+        mismatch = True
+    
+    return {
+        "origin_domain": received_extract.domain+"."+received_extract.suffix,
+        "from_domain": from_extract.domain+"."+from_extract.suffix,
+        "mismatch": mismatch,
+        "hops": len(received)
+    }
+
 def print_field(label, value):
     print(f"{label:<20} {value}")
 
@@ -139,6 +178,8 @@ def display_results(results, filename):
     print_field("From: ", results["display_name_spoof"].get("display_name", "None"))
     print_field("Domain: ", results["display_name_spoof"].get("from_domain", "None"))
     print_field("Reply-To: ", results["reply_to"].get("replyto_domain", "None"))
+    print_field("Origin Domain: " , results["received_chain"].get("origin_domain", "None"))
+    print_field("Hops: " , results["received_chain"].get("hops", "None"))
     print("\nAuthentication")
     print_field("   spf: ", results.get("spf", "none"))
     print_field("   dkim: ", results.get("dkim", "none"))
@@ -146,6 +187,9 @@ def display_results(results, filename):
     print("\n=== Findings ===")
     print_field("Display Name Spoof: ", verdict(results["display_name_spoof"]["spoofed"]))
     print_field("Reply-To Mismatch: " , verdict(results["reply_to"]["mismatch"]))
+    print_field("Received Chain Mismatch: " , verdict(results["received_chain"].get("mismatch", "None")))
+    
+
     
 
 def main(argv=None):
@@ -160,7 +204,7 @@ def main(argv=None):
         msg = message_from_binary_file(f, policy=policy.default)
 
     parse_headers(msg)
-    parse_body(msg)
+    body = parse_body(msg)
     parse_attachments(msg)
     header_results = analyze_headers(msg)
     display_results(header_results,filename)
