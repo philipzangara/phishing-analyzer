@@ -21,6 +21,9 @@ Planned Phases
 - [ ] 4. Attachment Analysis
 - [ ] 5. Scoring and Report
 
+## Sample Output
+![Sample Output](assets/screenshot.png)
+
 Author: Philip Zangara
 
 License: MIT
