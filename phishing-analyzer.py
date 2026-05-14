@@ -61,6 +61,7 @@ def analyze_headers(msg):
 
     results["display_name_spoof"] = check_display_name_spoof(msg)
     results["reply_to"] = check_reply_to(msg)
+    results["subject"] = msg["Subject"]
     if DEBUG: print(results)
     return results
 
@@ -114,10 +115,38 @@ def check_reply_to(msg):
                 }
         
     return {
-        "mismatch": None, 
+        "mismatch": None,
         "reason": "No Reply-To header"
         }
+def print_field(label, value):
+    print(f"{label:<20} {value}")
 
+# Translate Spoofed and Mismatch from True/False/None to FLAGGED/CLEAN/N/A
+def verdict(value):
+    if value is True:
+        return "FLAGGED"
+    elif value is False:
+        return "CLEAN"
+    return "N/A"
+
+def display_results(results, filename):
+    print("*** Simple Email Phishing Analyzer ***")
+    print("=== File Info ===")
+    print_field("Email: ", filename)
+    print_field("Size:", f"{Path(filename).stat().st_size} bytes")
+    print("\n=== Header Analysis ===")
+    print_field("Subject: ", results.get("subject", "None"))
+    print_field("From: ", results["display_name_spoof"].get("display_name", "None"))
+    print_field("Domain: ", results["display_name_spoof"].get("from_domain", "None"))
+    print_field("Reply-To: ", results["reply_to"].get("replyto_domain", "None"))
+    print("\nAuthentication")
+    print_field("   spf: ", results.get("spf", "none"))
+    print_field("   dkim: ", results.get("dkim", "none"))
+    print_field("   dmarc: ", results.get("dmarc", "none"))
+    print("\n=== Findings ===")
+    print_field("Display Name Spoof: ", verdict(results["display_name_spoof"]["spoofed"]))
+    print_field("Reply-To Mismatch: " , verdict(results["reply_to"]["mismatch"]))
+    
 
 def main(argv=None):
     args = parse_args(argv)
@@ -133,7 +162,8 @@ def main(argv=None):
     parse_headers(msg)
     parse_body(msg)
     parse_attachments(msg)
-    analyze_headers(msg)
+    header_results = analyze_headers(msg)
+    display_results(header_results,filename)
 
 if __name__ == "__main__":
     main()
