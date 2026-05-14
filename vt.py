@@ -40,5 +40,6 @@ def check_urls_vt(urls: list) -> list:
                     "url": url,
                     "error": str(e)
                 })
-        time.sleep(15)    
+        time.sleep(15) 
+
     return vt_results

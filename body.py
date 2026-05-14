@@ -33,22 +33,28 @@ def parse_body(msg: Message) -> dict:
 
 def extract_urls(body: dict) -> list:
     url_strip = []
+    soup_body = BeautifulSoup(body["html"], 'html.parser')
 
-    # extract urls from the plain text and html text
+    # extract urls from the plain text and cleaned html text
     # strip extra punctuation from the end of a url
-    for text in [body["plain"], body["html"]]:
+    for text in [body["plain"], soup_body.get_text()]:
         for u in re.findall(r'https?://\S+', text):
             url_strip.append(u.rstrip('.,;:)"'))
 
-    # extract urls from the html text
+    # extract urls from <a> tags
     # the regex might miss a URL, so we use BeautifulSoup to
     # find the rest
     # strip extra punctuation from the end of a url
-    soup_body = BeautifulSoup(body["html"], 'html.parser')
     for link in soup_body.find_all('a'):
         href = link.get('href')
         if href and href.startswith('http'):
             url_strip.append(href.rstrip('.,;:)"'))
+
+    # extract urls from <img> tags
+    for img in soup_body.find_all('img'):
+        src = img.get('src')
+        if src and src.startswith('http'):
+            url_strip.append(src.rstrip('.,;:)"'))
 
     # converting to a set removes duplicates, then return back to a list
     return list(set(url_strip))
