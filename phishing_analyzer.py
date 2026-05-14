@@ -3,10 +3,12 @@
 import argparse 
 import sys
 import os
+from typing import Optional, Any
 from pathlib import Path
 from email import message_from_binary_file
 from email import policy
 from email.utils import parseaddr
+from email.message import Message
 import tldextract
 import re
 from bs4 import BeautifulSoup
@@ -25,7 +27,7 @@ def parse_args(argv=None):
     parser.add_argument("filename", help="Path to the file to process")
     return parser.parse_args(argv)
 
-def parse_headers(msg):
+def parse_headers(msg: Message) -> None:
     if DEBUG:
         print("Headers")
         print(msg['From'])
@@ -34,7 +36,7 @@ def parse_headers(msg):
 
 # Iterates through the body of the email
 # This will only return the body of the email the receiver first sees
-def parse_body(msg):
+def parse_body(msg: Message) -> dict:
     body = {"plain": "", "html": ""}
     for part in msg.walk():
         if part.get_content_type().startswith("multipart"): 
@@ -60,13 +62,13 @@ def parse_body(msg):
             if DEBUG: print(text[:200])
     return body
             
-def parse_attachments(msg):
+def parse_attachments(msg: Message) -> None:
     for part in msg.walk():
         if part.get_content_disposition() == "attachment":
             if DEBUG: print(part.get_filename())
             if DEBUG: print("Attachment") 
     
-def analyze_headers(msg):
+def analyze_headers(msg: Message) -> dict:
     auth_fields = ["spf", "dkim", "dmarc"]
     results = {}
     headers = msg.get_all('Authentication-Results', [])
@@ -87,7 +89,7 @@ def analyze_headers(msg):
 
 # Check is the display name is similar to the domain name, ex. "Microsoft Support" and info@microsoft.com
 # Matches on the first word found in domain - TLD not evaluated here.
-def check_display_name_spoof(msg):
+def check_display_name_spoof(msg: Message) -> dict:
     name, addr = parseaddr(msg['From'])
 
     # If display_name is not empty
@@ -115,7 +117,7 @@ def check_display_name_spoof(msg):
         }
 
 # Check if the Reply-To address matches the From address
-def check_reply_to(msg):
+def check_reply_to(msg: Message) -> dict:
     if msg['Reply-To']:
         _, reply_addr = parseaddr(msg['Reply-To'])
         _, from_addr = parseaddr(msg['From'])
@@ -142,7 +144,7 @@ def check_reply_to(msg):
 # received gets a header similar to "from 2435sdf.co.uk (X.X.X.X) by DM6NAFSDTM11FT012.mail.protection.outlook.com ...."
 # The last item of the array is the first hop
 # Split the array, the "from" is the [0] item of the array, then the domain is the [1] item
-def received_chain_analysis(msg):
+def received_chain_analysis(msg: Message) -> dict:
     received = msg.get_all('Received')
 
     if not received:
@@ -167,7 +169,7 @@ def received_chain_analysis(msg):
         "hops": len(received)
     }
 
-def extract_urls(body):
+def extract_urls(body: dict) -> list:
     url_strip = []
 
     # extract urls from the plain text and html text
@@ -191,7 +193,7 @@ def extract_urls(body):
 
 # check URLS in VirusTotal
 # rate limit to 15 seconds. Only 4 free API calls per minute.
-def check_urls_vt(urls):
+def check_urls_vt(urls: list) -> list:
     vt_results = []
 
     for url in urls:
@@ -224,25 +226,25 @@ def check_urls_vt(urls):
         time.sleep(15)    
     return vt_results
 
-def print_field(label, value):
+def print_field(label: str, value: Any) -> None:
     print(f"{label:<30} {value}")
 
 # Translate Spoofed and Mismatch from True/False/None to FLAGGED/CLEAN/N/A
-def verdict(value):
+def verdict(value: Optional[bool]) -> str:
     if value is True:
         return "FLAGGED"
     elif value is False:
         return "CLEAN"
     return "N/A"
 
-def url_verdict(malicious, suspicious):
+def url_verdict(malicious: int, suspicious: int) -> str:
     if malicious >= 1:
         return "MALICIOUS"
     elif suspicious >= 1:
         return "SUSPICIOUS"
     return "CLEAN"
 
-def display_results(results, filename, urls, vt_results):
+def display_results(results: dict, filename: str, urls: list, vt_results: list) -> None:
     print("*** Simple Email Phishing Analyzer ***")
     print("=== File Info ===")
     print_field("Email: ", filename)
@@ -273,7 +275,7 @@ def display_results(results, filename, urls, vt_results):
             print_field("Malicious: ", vt_result["malicious"])
             print_field("Suspicious: ", vt_result["suspicious"])
             
-def main(argv=None):
+def main(argv=None) -> None:
     args = parse_args(argv)
     filename = args.filename
     file_ext = Path(args.filename)
