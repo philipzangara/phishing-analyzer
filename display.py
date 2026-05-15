@@ -26,7 +26,9 @@ def display_results(results: dict, filename: str, hashes: list, vt_results: list
     print("\n=== URL Analysis ===")
     if vt_results:
         for vt_result in vt_results:
-            if vt_result.get("error"):
+            if vt_result.get("error") and not vt_result.get("url"):
+                print(vt_result["error"])
+            elif vt_result.get("error"):
                 print_field("URL: ", vt_result["url"])
                 print_field("Error: ", vt_result["error"])
             else:
@@ -51,14 +53,19 @@ def display_results(results: dict, filename: str, hashes: list, vt_results: list
     print("\n=== MalwareBazaar Analysis ===")
     if mb_results:
         for result in mb_results:
-            print_field("Filename:", result["filename"])
-            print_field("SHA256:", result["sha256"])
-            if result.get("error"):
+            if result.get("error") and not result.get("filename"):
+                print(result["error"])
+            elif result.get("error"):
+                print_field("Filename:", result["filename"])
                 print_field("Error:", result["error"])
             elif result["found"]:
+                print_field("Filename:", result["filename"])
+                print_field("SHA256:", result["sha256"])
                 print_field("Verdict:", "FOUND - MALICIOUS")
                 print_field("Malware Name:", result["malware_name"])
             else:
+                print_field("Filename:", result["filename"])
+                print_field("SHA256:", result["sha256"])
                 print_field("Verdict:", "Not found in MalwareBazaar")
     else:
         print("No attachments to check.")

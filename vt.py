@@ -11,8 +11,12 @@ api_key = os.getenv("VT_API_KEY") or ""
 # check URLS in VirusTotal
 # rate limit to 15 seconds. Only 4 free API calls per minute.
 def check_urls_vt(urls: list) -> list:
+   
+    if not api_key:
+        return [{"error": "No VT API key found in .env"}] 
+    
     vt_results = []
-
+    
     for url in urls:
         url_id = base64.urlsafe_b64encode(url.encode()).decode().rstrip('=')
 
