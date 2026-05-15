@@ -2,9 +2,15 @@ A Python-based phishing email analyzer that parses .eml files and performs
 automated triage including header analysis, URL extraction with VirusTotal 
 enrichment, attachment hashing with MalwareBazaar lookup, and risk scoring.
 
-Usage:
+## Usage
+Windows:
 ```
 python phishing_analyzer.py <path-to-file.eml>
+```
+
+Linux/Mac: 
+```
+python3 phishing_analyzer.py <path-to-file.eml>
 ```
 Tested using Python 3.10.11
 
@@ -15,8 +21,8 @@ pip install -r requirements.txt
 ## API Keys
 
 This tool uses the following free APIs:
-- VirusTotal: https://www.virustotal.com  (free account required)
-- MalwareBazaar: https://auth.abuse.ch  (free account required)
+- VirusTotal: https://www.virustotal.com  (free account recommended)
+- MalwareBazaar: https://auth.abuse.ch  (free account recommended)
 
 URL and attachment analysis will be skipped if keys are not present. The tool will still perform header analysis and scoring without API keys.
 
