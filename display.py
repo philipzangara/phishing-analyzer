@@ -2,7 +2,7 @@ from typing import Optional, Any
 from pathlib import Path
 from config import DEBUG
 
-def display_results(results: dict, filename: str, hashes: list, vt_results: list, mb_results: list) -> None:
+def display_results(results: dict, filename: str, hashes: list, vt_results: list, mb_results: list, score: dict) -> None:
     print("*** Simple Email Phishing Analyzer ***")
     print("=== File Info ===")
     print_field("Email: ", filename)
@@ -63,8 +63,12 @@ def display_results(results: dict, filename: str, hashes: list, vt_results: list
     else:
         print("No attachments to check.")
 
+    print("\n=== Score ===")
+    print_field("Verdict: ", score["verdict"])
+    print_field("Score: ", score["score"])    
+    print_field("Reasons:", ", ".join(score["reasons"]) or "None")
 
-
+    
 def print_field(label: str, value: Any) -> None:
     print(f"{label:<30} {value}")
 

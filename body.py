@@ -13,7 +13,7 @@ def parse_body(msg: Message) -> dict:
         elif part.get_content_type() == "text/plain":
             plain = part.get_payload(decode=True)
             charset = part.get_content_charset()
-            if charset == None:
+            if charset is None:
                 charset = 'utf-8'
             text = plain.decode(charset, errors='replace')
             if body["plain"] == "":
@@ -23,7 +23,7 @@ def parse_body(msg: Message) -> dict:
         elif part.get_content_type() == "text/html":
             html = part.get_payload(decode=True)
             charset = part.get_content_charset()
-            if charset == None:
+            if charset is None:
                 charset = 'utf-8'
             text = html.decode(charset, errors='replace')
             if body["html"] == "":

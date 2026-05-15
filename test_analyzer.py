@@ -2,8 +2,8 @@ import unittest
 from display import verdict, url_verdict
 from body import extract_urls
 from attachments import hash_attachments
+from scoring import calculate_verdict
 import hashlib
-from config import DEBUG
 
 class TestVerdict(unittest.TestCase):
     def test_true_returns_flagged(self):
@@ -15,11 +15,11 @@ class TestVerdict(unittest.TestCase):
 
 class TestUrlVerdict(unittest.TestCase):
     def test_malicious_count_returns_malicious(self):
-        self.assertEqual(url_verdict(1,0), "MALICIOUS")
+        self.assertEqual(url_verdict(1, 0), "MALICIOUS")
     def test_suspicious_count_returns_suspicious(self):
-        self.assertEqual(url_verdict(0,1), "SUSPICIOUS")
+        self.assertEqual(url_verdict(0, 1), "SUSPICIOUS")
     def test_clean_returns_clean(self):
-        self.assertEqual(url_verdict(0,0), "CLEAN")
+        self.assertEqual(url_verdict(0, 0), "CLEAN")
 
 class TestExtractUrls(unittest.TestCase):
     def test_extracts_plain_text_url(self):
@@ -37,8 +37,6 @@ class TestExtractUrls(unittest.TestCase):
         body = {"plain": "click here http://malicious.com", 
                 "html": '<a href="http://malicious.com">click here</a>'}
         result = extract_urls(body)
-        print(result)
-
         self.assertEqual(len(result), 1)
 
 class TestHashAttachments(unittest.TestCase):
@@ -59,3 +57,16 @@ class TestHashAttachments(unittest.TestCase):
 
     def test_empty_list_returns_empty(self):
         self.assertEqual(hash_attachments([]), [])
+
+class TestCalculateVerdict(unittest.TestCase):
+    def test_calculate_verdict_low(self):
+        self.assertEqual("LOW", calculate_verdict(10))
+
+    def test_calculate_verdict_medium(self):
+        self.assertEqual("MEDIUM", calculate_verdict(50))
+    
+    def test_calculate_verdict_high(self):
+        self.assertEqual("HIGH", calculate_verdict(70))
+
+    def test_calculate_verdict_critical(self):
+        self.assertEqual("CRITICAL", calculate_verdict(140))

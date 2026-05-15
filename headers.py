@@ -1,7 +1,6 @@
 from email.utils import parseaddr
 from email.message import Message
 import tldextract
-from typing import Optional, Any
 from config import DEBUG
 
 def analyze_headers(msg: Message) -> dict:

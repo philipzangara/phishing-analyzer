@@ -13,9 +13,8 @@ from attachments import parse_attachments, hash_attachments
 from vt import check_urls_vt
 from display import display_results
 from malwarebazaar import check_hashes_malwarebazaar
+from scoring import calculate_score
 from config import DEBUG
-
-
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Process a filename.")
@@ -48,7 +47,8 @@ def main(argv=None) -> None:
     hashes = hash_attachments(attachments)
     mb_results = check_hashes_malwarebazaar(hashes)
     header_results = analyze_headers(msg)
-    display_results(header_results,filename,hashes,vt_results,mb_results)
+    score = calculate_score(header_results, vt_results, mb_results)
+    display_results(header_results, filename, hashes, vt_results, mb_results, score)
 
 if __name__ == "__main__":
     main()

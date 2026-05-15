@@ -22,10 +22,11 @@ def hash_attachments(attachments: list) -> list:
 
     for attachment in attachments:
         hashes.append({"filename": attachment["filename"],
-                            "content_type": attachment["content_type"],
-                            "md5": hashlib.md5(attachment["data"]).hexdigest(),
-                            "sha1": hashlib.sha1(attachment["data"]).hexdigest(),
-                            "sha256": hashlib.sha256(attachment["data"]).hexdigest(),
-                             })
+                        "content_type": attachment["content_type"],
+                        "md5": hashlib.md5(attachment["data"]).hexdigest(),
+                        "sha1": hashlib.sha1(attachment["data"]).hexdigest(),
+                        "sha256": hashlib.sha256(attachment["data"]).hexdigest(),
+                         })
+        
     return hashes
  

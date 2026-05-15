@@ -19,7 +19,7 @@ Planned Phases
 - [X] 2. Header Analysis
 - [X] 3. URL Extraction 
 - [X] 4. Attachment Analysis
-- [ ] 5. Scoring and Report
+- [X] 5. Scoring and Report
 
 ## Sample Output
 ![Sample Output](assets/screenshot.png)

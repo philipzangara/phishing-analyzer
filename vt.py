@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from config import DEBUG
 
 load_dotenv()
-api_key = os.getenv("VT_API_KEY")
+api_key = os.getenv("VT_API_KEY") or ""
 
 # check URLS in VirusTotal
 # rate limit to 15 seconds. Only 4 free API calls per minute.
