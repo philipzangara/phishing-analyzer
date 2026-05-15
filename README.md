@@ -42,6 +42,8 @@ Test emails sourced from: https://github.com/rf-peixoto/phishing_pot/
 - URL Extraction  
 - Attachment Analysis  
 - Scoring and Report
+- MITRE ATT&CK Mapping: T1566 (Phishing), T1566.001 (Spearphishing Attachment), T1566.002 (Spearphishing Link)
+
 
 ## Sample Output
 
