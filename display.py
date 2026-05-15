@@ -2,26 +2,26 @@ from typing import Optional, Any
 from pathlib import Path
 from config import DEBUG
 
-def display_results(results: dict, filename: str, hashes: list, vt_results: list) -> None:
+def display_results(results: dict, filename: str, hashes: list, vt_results: list, mb_results: list) -> None:
     print("*** Simple Email Phishing Analyzer ***")
     print("=== File Info ===")
     print_field("Email: ", filename)
     print_field("Size: ", f"{Path(filename).stat().st_size} bytes")
     print("\n=== Header Analysis ===")
-    print_field("Subject: ", results.get("subject", "None"))
-    print_field("From: ", results["display_name_spoof"].get("display_name", "None"))
-    print_field("Domain: ", results["display_name_spoof"].get("from_domain", "None"))
-    print_field("Reply-To: ", results["reply_to"].get("replyto_domain", "None"))
-    print_field("Origin Domain: " , results["received_chain"].get("origin_domain", "None"))
-    print_field("Hops: " , results["received_chain"].get("hops", "None"))
+    print_field("Subject: ", results.get("subject", "N/A"))
+    print_field("From: ", results["display_name_spoof"].get("display_name", "N/A"))
+    print_field("Domain: ", results["display_name_spoof"].get("from_domain", "N/A"))
+    print_field("Reply-To: ", results["reply_to"].get("replyto_domain", "N/A"))
+    print_field("Origin Domain: " , results["received_chain"].get("origin_domain", "N/A"))
+    print_field("Hops: " , results["received_chain"].get("hops", "N/A"))
     print("\nAuthentication")
-    print_field("   spf: ", results.get("spf", "none"))
-    print_field("   dkim: ", results.get("dkim", "none"))
-    print_field("   dmarc: ", results.get("dmarc", "none"))
+    print_field("   SPF: ", results.get("spf", "N/A"))
+    print_field("   DKIM: ", results.get("dkim", "N/A"))
+    print_field("   DMARC: ", results.get("dmarc", "N/A"))
     print("\n=== Findings ===")
     print_field("Display Name Spoof: ", verdict(results["display_name_spoof"]["spoofed"]))
     print_field("Reply-To Mismatch: " , verdict(results["reply_to"]["mismatch"]))
-    print_field("Received Chain Mismatch: " , verdict(results["received_chain"].get("mismatch", "None")))
+    print_field("Received Chain Mismatch: " , verdict(results["received_chain"].get("mismatch", "N/A")))
     
     print("\n=== URL Analysis ===")
     if vt_results:
@@ -40,15 +40,28 @@ def display_results(results: dict, filename: str, hashes: list, vt_results: list
     print("\n=== Attachment Analysis ===")    
     if hashes:
         for h in hashes:
-            print_field("filename: ", h["filename"])
-            print_field("content-type: ", h["content_type"])
-            print_field("md5: ", h["md5"])
-            print_field("sha1: ", h["sha1"])
-            print_field("sha256: ", h["sha256"])
+            print_field("Filename: ", h["filename"])
+            print_field("Content-Type: ", h["content_type"])
+            print_field("MD5: ", h["md5"])
+            print_field("SHA1: ", h["sha1"])
+            print_field("SHA256: ", h["sha256"])
     else:
         print("No attachments found.")
 
-
+    print("\n=== MalwareBazaar Analysis ===")
+    if mb_results:
+        for result in mb_results:
+            print_field("Filename:", result["filename"])
+            print_field("SHA256:", result["sha256"])
+            if result.get("error"):
+                print_field("Error:", result["error"])
+            elif result["found"]:
+                print_field("Verdict:", "FOUND - MALICIOUS")
+                print_field("Malware Name:", result["malware_name"])
+            else:
+                print_field("Verdict:", "Not found in MalwareBazaar")
+    else:
+        print("No attachments to check.")
 
 
 

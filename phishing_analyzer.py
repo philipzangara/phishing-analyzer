@@ -12,6 +12,7 @@ from body import parse_body, extract_urls
 from attachments import parse_attachments, hash_attachments
 from vt import check_urls_vt
 from display import display_results
+from malwarebazaar import check_hashes_malwarebazaar
 from config import DEBUG
 
 
@@ -45,8 +46,9 @@ def main(argv=None) -> None:
     vt_results = check_urls_vt(urls)
     attachments = parse_attachments(msg)
     hashes = hash_attachments(attachments)
+    mb_results = check_hashes_malwarebazaar(hashes)
     header_results = analyze_headers(msg)
-    display_results(header_results,filename,hashes,vt_results)
+    display_results(header_results,filename,hashes,vt_results,mb_results)
 
 if __name__ == "__main__":
     main()
