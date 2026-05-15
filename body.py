@@ -15,7 +15,7 @@ def parse_body(msg: Message) -> dict:
             charset = part.get_content_charset()
             if charset is None:
                 charset = 'utf-8'
-            text = plain.decode(charset, errors='replace')
+            text = plain.decode(charset, errors='replace') # type: ignore
             if body["plain"] == "":
                 body["plain"] = text
             if DEBUG: print(text[:200])
@@ -25,7 +25,7 @@ def parse_body(msg: Message) -> dict:
             charset = part.get_content_charset()
             if charset is None:
                 charset = 'utf-8'
-            text = html.decode(charset, errors='replace')
+            text = html.decode(charset, errors='replace') # type: ignore
             if body["html"] == "":
                 body["html"] = text
             if DEBUG: print(text[:200])
@@ -47,13 +47,13 @@ def extract_urls(body: dict) -> list:
     # strip extra punctuation from the end of a url
     for link in soup_body.find_all('a'):
         href = link.get('href')
-        if href and href.startswith('http'):
+        if href and isinstance(href, str) and href.startswith('http'):
             url_strip.append(href.rstrip('.,;:)"'))
 
     # extract urls from <img> tags
     for img in soup_body.find_all('img'):
         src = img.get('src')
-        if src and src.startswith('http'):
+        if src and isinstance(src, str) and src.startswith('http'):
             url_strip.append(src.rstrip('.,;:)"'))
 
     # converting to a set removes duplicates, then return back to a list

@@ -19,13 +19,13 @@ def check_urls_vt(urls: list) -> list:
         headers = {"x-apikey": api_key}
         data = {"url": url} 
         post_response = requests.post("https://www.virustotal.com/api/v3/urls", 
-                                  headers=headers, data=data)
+                                  headers=headers, data=data) # type: ignore
         
         if post_response.status_code != 200:
             vt_results.append({"url": url, "error": f"POST failed: {post_response.status_code}"})
         else:
             get_response = requests.get(f"https://www.virustotal.com/api/v3/urls/{url_id}", 
-                                headers=headers)
+                                headers=headers) # type: ignore
             try:
                 response = get_response.json()
                 stats = response["data"]["attributes"]["last_analysis_stats"]

@@ -5,7 +5,7 @@ from config import DEBUG
 
 def analyze_headers(msg: Message) -> dict:
     auth_fields = ["spf", "dkim", "dmarc"]
-    results = {}
+    results: dict = {} 
     headers = msg.get_all('Authentication-Results', [])
     parts = [p.strip() for p in headers[0].split(";") if p.strip()] if headers else []
     for part in parts:
@@ -15,9 +15,9 @@ def analyze_headers(msg: Message) -> dict:
                 final_result = result.split("=", 1)
                 results[final_result[0]] = final_result[1]
 
-    results["display_name_spoof"] = check_display_name_spoof(msg)
-    results["reply_to"] = check_reply_to(msg)
-    results["subject"] = msg["Subject"]
+    results["display_name_spoof"] = check_display_name_spoof(msg) # type: ignore
+    results["reply_to"] = check_reply_to(msg) # type: ignore
+    results["subject"] = msg["Subject"] # type: ignore
     results["received_chain"] = received_chain_analysis(msg)
     if DEBUG: print(results)
     return results
